@@ -1,1 +1,1 @@
-# hbr-projeto-final
+# Projeto final do curso de sistemas embarcados HBR
