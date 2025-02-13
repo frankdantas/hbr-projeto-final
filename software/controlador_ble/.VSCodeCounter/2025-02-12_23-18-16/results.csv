@@ -1,0 +1,12 @@
+"filename", "language", "C", "C++", "CMake", "comment", "blank", "total"
+"d:\Curso_HardwareBR\hbr-projeto-final\software\controlador_ble\CMakeLists.txt", "CMake", 0, 0, 54, 0, 19, 73
+"d:\Curso_HardwareBR\hbr-projeto-final\software\controlador_ble\btstack_config.h", "C++", 0, 38, 0, 10, 11, 59
+"d:\Curso_HardwareBR\hbr-projeto-final\software\controlador_ble\controlador_ble.c", "C", 239, 0, 0, 13, 67, 319
+"d:\Curso_HardwareBR\hbr-projeto-final\software\controlador_ble\generated\ws2812.pio.h", "C++", 0, 91, 0, 13, 20, 124
+"d:\Curso_HardwareBR\hbr-projeto-final\software\controlador_ble\lwipopts.h", "C++", 0, 78, 0, 6, 6, 90
+"d:\Curso_HardwareBR\hbr-projeto-final\software\controlador_ble\pico_sdk_import.cmake", "CMake", 0, 0, 71, 0, 14, 85
+"d:\Curso_HardwareBR\hbr-projeto-final\software\controlador_ble\server_common.c", "C", 169, 0, 0, 9, 31, 209
+"d:\Curso_HardwareBR\hbr-projeto-final\software\controlador_ble\server_common.h", "C++", 0, 13, 0, 5, 6, 24
+"d:\Curso_HardwareBR\hbr-projeto-final\software\controlador_ble\shared_vars.c", "C", 9, 0, 0, 1, 1, 11
+"d:\Curso_HardwareBR\hbr-projeto-final\software\controlador_ble\shared_vars.h", "C++", 0, 18, 0, 0, 5, 23
+"Total", "-", 417, 238, 125, 57, 180, 1017

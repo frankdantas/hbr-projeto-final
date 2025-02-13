@@ -39,6 +39,7 @@
     "files.associations": {
         "pio.h": "c",
         "btstack.h": "c",
-        "multicore.h": "c"
+        "multicore.h": "c",
+        "btstack_cyw43.h": "c"
     }
 }

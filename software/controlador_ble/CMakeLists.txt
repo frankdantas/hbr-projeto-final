@@ -59,6 +59,8 @@ target_link_libraries(controlador_ble
         pico_btstack_ble
         pico_btstack_cyw43
         pico_cyw43_arch_none
+        hardware_timer
+        hardware_clocks
         )
 
 # Add the standard include files to the build
