@@ -1,4 +1,4 @@
-# Controle de fita de led endereçável via WiFi
+# Controle de fita de led endereçável via BLE
 
 # **Modelo de relatório do projeto e nota máxima de cada item**
 
@@ -10,7 +10,7 @@
 
 - Apresentação do projeto – breve descrição sobre o que trata o projeto.	(0,5 ponto)
 
-- 
+- O LAC (Light Ambient Controller)
 
 - Objetivos do projeto – descreva os objetivos do projeto.	(0,25 ponto)
 
@@ -86,3 +86,7 @@ https://www.instructables.com/ESP8266-Connected-WS2812-RGB-LED-Controlled-Throug
 https://datasheets.raspberrypi.com/picow/connecting-to-the-internet-with-pico-w.pdf
 
 https://github.com/bluekitchen/btstack/blob/master/example/gatt_counter.c
+
+https://github.com/lurk101/pico-littlefs
+
+https://www.uuidgenerator.net/version4

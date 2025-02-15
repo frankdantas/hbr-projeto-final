@@ -35,6 +35,9 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
+set(LITTLEFS_DIR "D:/Curso_HardwareBR/pico-littlefs/littlefs-lib")
+set(STDINIT_DIR "D:/Curso_HardwareBR/pico-littlefs/stdinit-lib")
+
 add_executable(controlador_ble controlador_ble.c server_common.c shared_vars.c)
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/generated)
@@ -46,9 +49,15 @@ pico_set_program_version(controlador_ble "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(controlador_ble 0)
-pico_enable_stdio_usb(controlador_ble 1)
+pico_enable_stdio_usb(controlador_ble 0)
 
 pico_btstack_make_gatt_header(controlador_ble PRIVATE "${CMAKE_CURRENT_LIST_DIR}/comunicacao.gatt")
+
+#add_subdirectory(${LITTLEFS_DIR})
+#add_subdirectory(${STDINIT_DIR})
+
+add_subdirectory(${LITTLEFS_DIR} ${CMAKE_BINARY_DIR}/littlefs-lib)
+add_subdirectory(${STDINIT_DIR} ${CMAKE_BINARY_DIR}/stdinit-lib)
 
 # Add the standard library to the build
 target_link_libraries(controlador_ble
@@ -61,6 +70,7 @@ target_link_libraries(controlador_ble
         pico_cyw43_arch_none
         hardware_timer
         hardware_clocks
+        littlefs-lib stdinit-lib
         )
 
 # Add the standard include files to the build

@@ -13,8 +13,19 @@
 #include "shared_vars.h"
 #include "ws2812.pio.h"
 
+#include "pico_hal.h"
+#include "stdinit.h"
 
+//#define WAIT_FOR_SERIAL 1
 
+typedef struct{
+    uint8_t amountLeds;
+    uint8_t colunasLed;
+    uint8_t efeitoAtivo;
+    uint32_t mainColor;
+    uint32_t secondColor;
+    uint32_t fullColor;
+}config_t;
 
 //uint32_t mainColor = 0;
 //uint32_t secondColor = 0;
@@ -25,6 +36,8 @@ bool flagHelpColor = 0;
 bool flagHelpColorStarter = 0;
 
 static btstack_packet_callback_registration_t hci_event_callback_registration;
+config_t config = {0, 5, 0, RGB32(10, 0, 0), RGB32(0, 10, 0), RGB32(20, 20, 20)};
+
 
 
 void init_cores(){
@@ -71,7 +84,9 @@ static inline void put_pixel(PIO pio, uint sm, uint32_t pixel_grb) {
 }
 
 void clear_all(PIO *pio, uint sm, uint8_t hasDelay){
-    for(uint8_t i = 0; i < amountLeds; i++){
+    printf("Cleaning leds\n");
+    uint8_t maxLedCount = amountLeds > prevAmountLeds ? amountLeds : prevAmountLeds;
+    for(uint8_t i = 0; i < maxLedCount; i++){
         put_pixel(*pio, sm, 0);
     }
     if(hasDelay){
@@ -81,6 +96,7 @@ void clear_all(PIO *pio, uint sm, uint8_t hasDelay){
 }
 
 void efeito1(PIO *pio, uint sm){
+    printf("Executou efeito 1\n");
     static uint8_t offset_inicio = 0;
     const uint8_t qtdLed = 6;
     if(qtdLed > amountLeds || shouldStopEffect){
@@ -113,7 +129,7 @@ void efeito1(PIO *pio, uint sm){
 }
 
 void efeito2(PIO *pio, uint sm){
-
+    printf("Executou efeito 2\n");
     for (size_t i = 0; i < amountLeds && !shouldStopEffect; i++)
     {
         for (size_t j = 0; j <= i && !shouldStopEffect; j++)
@@ -127,14 +143,18 @@ void efeito2(PIO *pio, uint sm){
 }
 
 void efeito3(PIO *pio, uint sm){
-    printf("Executando efeito 3\n");
+    printf("Executou efeito 3 com cor 0x%08x em %d leds\n", fullColor, amountLeds);
+    uint8_t log = 0;
     for (size_t i = 0; i < amountLeds && !shouldStopEffect; i++)
     {
         put_pixel(*pio, sm, fullColor);
+        ++log;
     }
+    printf("Executou efeito 3 com %d leds\n", log);
 }
 
 void efeito4(PIO *pio, uint sm, uint16_t qtdLeds){
+    printf("Executou efeito 4\n");
     for(int i = 0; i < amountLeds && !shouldStopEffect; i++){
         if(i <= qtdLeds){
             put_pixel(*pio, sm, mainColor);
@@ -144,7 +164,8 @@ void efeito4(PIO *pio, uint sm, uint16_t qtdLeds){
     }
 }
 
-void efeito5(PIO *pio, uint sm, uint16_t qtdLeds){
+void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
+    printf("Executou efeito 5\n");
     const uint8_t maxCores = 7;
     static const uint32_t arco_iris[] = {
       RGB32(255, 0, 0),
@@ -164,7 +185,7 @@ void efeito5(PIO *pio, uint sm, uint16_t qtdLeds){
     uint8_t indexPar = 0;
     uint8_t indexImpar = 9;
     uint8_t indexCor = 0;
-    uint8_t ledsPorColuna = amountLeds / colunasLed;
+    //uint8_t ledsPorColuna = amountLeds / colunasLed;
 
     for (size_t i = 0; i < colunasLed && !shouldStopEffect; i++)
     {
@@ -231,6 +252,74 @@ uint8_t read_adc_mapped(uint8_t sensibilidade, uint8_t maxValue){
     return quatidade;
 }
 
+void saveFS(const char *fileName){
+    if (pico_mount(false) < 0) {
+        printf("Mount failed\n");
+        return;
+    }else{
+        printf("FS mounted successfully\n");
+    }
+
+    printf("Saving values\n");
+    printf("Led count: %d\n", config.amountLeds);
+    printf("Main color: 0x%08x\n", config.mainColor);
+    printf("Second color: 0x%08x\n", config.secondColor);
+    printf("Full color: 0x%08x\n", config.fullColor);
+    printf("Colunas: %d\n", config.colunasLed);
+    printf("Efeito: %d\n", config.efeitoAtivo);
+
+    int file = pico_open(fileName, LFS_O_RDWR | LFS_O_CREAT);
+    pico_rewind(file);
+    pico_write(file, &config, sizeof(config));
+	// save the file size
+	int pos = pico_lseek(file, 0, LFS_SEEK_CUR);
+    // Close the file, making sure all buffered data is flushed
+    pico_close(file);
+	// Unmount the file system, freeing memory
+    pico_unmount();
+
+    //printf("Saved leds count with value: %d\n", ledsCount);
+    // log config
+    
+
+}
+
+
+void readFS(const char *fileName){
+
+    if (pico_mount(false) < 0) {
+        printf("Mount failed\n");
+        return;
+    }else{
+        printf("FS mounted successfully\n");
+    }
+
+
+    int file = pico_open(fileName, LFS_O_RDWR | LFS_O_CREAT);
+    uint8_t leds_count = 0;
+	// Read previous boot count. If file was just created read will return 0 bytes
+    pico_read(file, &config, sizeof(config));
+    // Close the file, making sure all buffered data is flushed
+    pico_close(file);
+	// Unmount the file system, freeing memory
+    pico_unmount();
+
+    printf("Read values\n");
+    printf("Led count: %d\n", config.amountLeds);
+    printf("Main color: 0x%08x\n", config.mainColor);
+    printf("Second color: 0x%08x\n", config.secondColor);
+    printf("Full color: 0x%08x\n", config.fullColor);
+    printf("Colunas: %d\n", config.colunasLed);
+    printf("Efeito: %d\n", config.efeitoAtivo);
+
+    amountLeds = config.amountLeds;
+    mainColor = config.mainColor;
+    secondColor = config.secondColor;
+    fullColor = config.fullColor;
+    colunasLed = config.colunasLed;
+    efeitoAtivo = config.efeitoAtivo;
+}
+
 
 int main()
 {
@@ -241,6 +330,20 @@ int main()
 
     init_cores();
     bool iniciouBLE = init_ble();
+
+    #ifdef WAIT_FOR_SERIAL
+    /*printf("Esperando abrir serial monitor...");
+    while (!stdio_usb_connected()) {
+      printf(".");
+      sleep_ms(500);
+    }
+    printf("\nSerial aberta!\n");*/
+
+    #endif
+
+    const char *fileName = "/config.cfg";
+
+    readFS(fileName);
 
     if(!iniciouBLE){
         while(true){
@@ -261,7 +364,7 @@ int main()
     sleep_ms(100);
     
 
-    clear_all(&pio, sm, false);
+    clear_all(&pio, sm, true);
     //sleep_ms(50);
 
     static absolute_time_t last_run_efeito1 = 0;
@@ -270,18 +373,23 @@ int main()
     uint16_t adc_value = 0;
 
     // Led vermelho ligado, modo espera
-    gpio_put(PIN_LED_RED, 1);
+    gpio_put(PIN_LED_RED, (efeitoAtivo == 0));
 
+    ledsPorColuna = amountLeds / colunasLed;
+    shouldUpdateFullColor = true;
+
+    //sleep_ms(500);
+    
     while (true) {
         switch(efeitoAtivo){
             case 1:
-                if(absolute_time_diff_us(last_run_efeito1, get_absolute_time()) > 250000){
+                if(absolute_time_diff_us(last_run_efeito1, get_absolute_time()) > 250000){//250ms
                     last_run_efeito1 = get_absolute_time();
                     efeito1(&pio, sm);
                 }
             break;
             case 2:
-                if(absolute_time_diff_us(last_run_efeito2, get_absolute_time()) > 100000){
+                if(absolute_time_diff_us(last_run_efeito2, get_absolute_time()) > 100000){//100ms
                     last_run_efeito2 = get_absolute_time();
                     efeito2(&pio, sm);
                 }
@@ -293,15 +401,16 @@ int main()
                 }
             break;
             case 4:
-                adc_value = read_adc_mapped(1, 25);
+                adc_value = read_adc_mapped(sensibilityADC, amountLeds + 1);
                 efeito4(&pio, sm, adc_value);
             break;
             case 5:
-                adc_value = read_adc_mapped(1, 5);
+                //uint8_t ledsPorColuna = amountLeds / colunasLed;
+                adc_value = read_adc_mapped(sensibilityADC, ledsPorColuna + 1);
                 efeito5(&pio, sm, adc_value);
             break;
             default:
-                printf("Esperando efeito...\n");
+                //printf("Esperando efeito...\n");
             break;
         }
 
@@ -311,6 +420,17 @@ int main()
             shouldStopEffect = false;
             if(efeitoAtivo == 3) shouldUpdateFullColor = true;
             continue;
+        }
+
+        if(shouldSaveLeds){
+            shouldSaveLeds = false;
+            config.amountLeds = amountLeds;
+            config.mainColor = mainColor;
+            config.secondColor = secondColor;
+            config.fullColor = fullColor;
+            config.colunasLed = colunasLed;
+            config.efeitoAtivo = efeitoAtivo;
+            saveFS(fileName);
         }
         sleep_ms(10);
     }

@@ -12,6 +12,15 @@
 #include "comunicacao.h"
 
 
+#define CMD_NUMERO_LEDS "NL="
+#define CMD_EFEITO "EF="
+#define CMD_MAIN_COLOR "MC="
+#define CMD_SECOND_COLOR "SC="
+#define CMD_FULL_COLOR "FC="
+#define CMD_SENSIBILITY_ADC "SA="
+#define CMD_QUANTIDADE_COLUNAS "QC="
+
+
 #define APP_AD_FLAGS 0x06
 static uint8_t adv_data[] = {
     0x02, BLUETOOTH_DATA_TYPE_FLAGS, APP_AD_FLAGS,
@@ -48,9 +57,30 @@ void verify_event(uint8_t event) {
     
 }
 
+uint32_t convertColor(const char* corHex){
+
+    if(corHex != NULL){
+        uint32_t rgb;
+        if (sscanf(corHex, "%06X", &rgb) != 1) {
+            printf("Formato de cor inválido!\n");
+            return 0;
+        }
+
+        // Separa as cores RGB
+        uint8_t r = (rgb >> 16) & 0xFF;
+        uint8_t g = (rgb >> 8) & 0xFF;
+        uint8_t b = rgb & 0xFF;
+
+
+        return RGB32(r, g, b);
+    }
+
+    return 0;
+}
+
 void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size) {
     UNUSED(channel);
-    printf("Executou funcao packet_handler, type: %02x, packet: %04x\n", packet_type, hci_event_packet_get_type(packet));
+    //printf("Executou funcao packet_handler, type: %02x, packet: %04x\n", packet_type, hci_event_packet_get_type(packet));
 
 
     if (packet_type != HCI_EVENT_PACKET) return;
@@ -62,21 +92,23 @@ void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint
         gap_advertisements_set_data(adv_data_len, adv_data);
         gap_advertisements_enable(1);
     }
-    if (hci_event_packet_get_type(packet) == ATT_EVENT_CAN_SEND_NOW) {
+    /*if (hci_event_packet_get_type(packet) == ATT_EVENT_CAN_SEND_NOW) {
         // Enviar notificação quando for permitido
-        uint8_t notification_data = rand() % 100;
-        printf("Escreveu: %02x\n", notification_data);
-        att_server_notify(con_handle, ATT_CHARACTERISTIC_ORG_BLUETOOTH_CHARACTERISTIC_STRING_01_VALUE_HANDLE, &notification_data, sizeof(notification_data));
-    }
+        char message[10];
+        sprintf(message, "E=%02x", messageFromDevice);
+
+        printf("Escreveu: %s\n", message);
+        att_server_notify(con_handle, ATT_CHARACTERISTIC_ORG_BLUETOOTH_CHARACTERISTIC_STRING_01_VALUE_HANDLE, &message, sizeof(message));
+    }*/
     if (hci_event_packet_get_type(packet) == HCI_EVENT_DISCONNECTION_COMPLETE) {
         le_notification_enabled = 0;
         printf("Desconectou\n");
-        gpio_put(PIN_LED_RED, 1);
+        //gpio_put(PIN_LED_RED, 1);
     }
     if (hci_event_packet_get_type(packet) == ATT_EVENT_CONNECTED) {
         le_notification_enabled = 0;
         printf("Conectou\n");
-        gpio_put(PIN_LED_RED, 0);
+        //gpio_put(PIN_LED_RED, 0);
     }
 
     
@@ -87,22 +119,22 @@ uint16_t att_read_callback(hci_con_handle_t connection_handle, uint16_t att_hand
 
      printf("All parameters solicited: %d, %04x, %d, %d, %s\n", connection_handle, att_handle, offset, buffer_size, (char *)buffer);
 
-     if(att_handle == ATT_CHARACTERISTIC_87654321_4321_6789_4321_abcdef012345_01_VALUE_HANDLE){
+     if(att_handle == ATT_CHARACTERISTIC_1191e8b3_5c6b_417c_b7b5_813ec84a757e_01_VALUE_HANDLE){
         printf("Solicitou valor de RX\n");
-     }else if(att_handle == ATT_CHARACTERISTIC_ORG_BLUETOOTH_CHARACTERISTIC_STRING_01_VALUE_HANDLE){
+     }/*else if(att_handle == ATT_CHARACTERISTIC_ORG_BLUETOOTH_CHARACTERISTIC_STRING_01_VALUE_HANDLE){
         printf("Solicitou valor de TX\n");
-     }
+     }*/
 
     return 0;
 }
 
-// TODO: Fazer validação dos dados inseridos, como quando a quantidade de leds for 0 ou colunas maior que a quantidade de leds
+
 int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t transaction_mode, uint16_t offset, uint8_t *buffer, uint16_t buffer_size) {
     UNUSED(transaction_mode);
 
     printf("All parameters wrote: %d, %04x, %04x, %d, %d, %s\n", connection_handle, att_handle, transaction_mode, offset, buffer_size, (char *)buffer);
 
-    if(att_handle == ATT_CHARACTERISTIC_87654321_4321_6789_4321_abcdef012345_01_VALUE_HANDLE){
+    if(att_handle == ATT_CHARACTERISTIC_1191e8b3_5c6b_417c_b7b5_813ec84a757e_01_VALUE_HANDLE){
         printf("Alteração no valor de RX:");
         for (size_t i = 0; i < buffer_size; i++)
         {
@@ -114,62 +146,119 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
         printf("Recebi novo valor: %s\n", comunicacao_data);
 
         // Escolhe o efeito
-        if(strncmp(comunicacao_data, "ef=", 3) == 0){// Verifica se os 3 primeiros caracteres sao 'ef='
+        if(strncmp(comunicacao_data, CMD_EFEITO, strlen(CMD_EFEITO)) == 0){// Verifica se os 3 primeiros caracteres sao 'ef='
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
                 int valor = atoi(ptr + 1); // Converte para int
+                uint8_t prevVal = efeitoAtivo;
                 efeitoAtivo = valor;
-                shouldStopEffect = true;
-                
+                shouldStopEffect = (prevVal != efeitoAtivo);
+                shouldSaveLeds = (prevVal != efeitoAtivo);
                 printf("Ativou efeito %d\n", efeitoAtivo);
+                gpio_put(PIN_LED_RED, (efeitoAtivo == 0));
             }
-        }else if(strncmp(comunicacao_data, "nl=", 3) == 0){// Define a quantidade de leds, verifica se os 3 primeiros caracteres sao 'nl='
+        }else if(strncmp(comunicacao_data, CMD_NUMERO_LEDS, strlen(CMD_NUMERO_LEDS)) == 0){// Define a quantidade de leds, verifica se os 3 primeiros caracteres sao 'nl='
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
                 int valor = atoi(ptr + 1); // Converte para int
-                if(amountLeds == 0){
+                if(valor <= 0){
+                    return 0;
+                }
+                uint8_t prevVal = amountLeds;
+                prevAmountLeds = amountLeds;
+                amountLeds = valor;
+                shouldStopEffect = (prevVal != efeitoAtivo);
+                ledsPorColuna = amountLeds / colunasLed;
+                shouldSaveLeds = prevVal != amountLeds;
+                printf("Ativou %d leds\n", amountLeds);
+
+                /*if(amountLeds == 0){
                     amountLeds = valor;
                     shouldStopEffect = true;
+                    shouldSaveLeds = true;
                     printf("Ativou %d leds\n", amountLeds);
                 }else{
                     printf("Nao pode alterar a quantidade de leds depois de iniciado\n");
-                }
+                }*/
                 
             }
-        }else if(strncmp(comunicacao_data, "c1=", 3) == 0){// Define a mainColor
-            char *ptr = strchr(comunicacao_data, '='); // Encontra '='
+        }else if(strncmp(comunicacao_data, CMD_MAIN_COLOR, strlen(CMD_MAIN_COLOR)) == 0){// Define a mainColor
+            char *ptr = strchr(comunicacao_data, '='); // Encontra '=' e pega tudo a partir dele, inclusive o =
             if(ptr != NULL){
-                int valor = atoi(ptr + 1); // Converte para int
+                const char *corHex = ptr + 1;//Pega tudo depois do =
+                int valor = convertColor(corHex);
+                uint32_t prevVal = mainColor;
                 mainColor = valor;
+                shouldSaveLeds = prevVal != mainColor;
                 printf("Alterou cor principal %d\n", mainColor);
+
             }
-        }else if(strncmp(comunicacao_data, "c2=", 3) == 0){// Define a secondColor, verifica se os 3 primeiros caracteres sao 'c2='
+            /*if(ptr != NULL){
+                int valor = atoi(ptr + 1); // Converte para int
+                if(valor <= 0){
+                    return 0;
+                }
+                uint32_t prevVal = mainColor;
+                mainColor = valor;
+                shouldSaveLeds = prevVal != mainColor;
+                printf("Alterou cor principal %d\n", mainColor);
+            }*/
+        }else if(strncmp(comunicacao_data, CMD_SECOND_COLOR, strlen(CMD_SECOND_COLOR)) == 0){// Define a secondColor, verifica se os 3 primeiros caracteres sao 'c2='
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
-                int valor = atoi(ptr + 1); // Converte para int
+                const char *corHex = ptr + 1;//Pega tudo depois do =
+                int valor = convertColor(corHex);
+                uint32_t prevVal = secondColor;
                 secondColor = valor;
+                shouldSaveLeds = prevVal != secondColor;
                 printf("Alterou cor secundaria %d\n", secondColor);
+
             }
-        }else if(strncmp(comunicacao_data, "c3=", 3) == 0){// Define a fullColor, verifica se os 3 primeiros caracteres sao 'c3='
+        }else if(strncmp(comunicacao_data, CMD_FULL_COLOR, strlen(CMD_FULL_COLOR)) == 0){// Define a fullColor, verifica se os 3 primeiros caracteres sao 'c3='
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
-                int valor = atoi(ptr + 1); // Converte para int
+                const char *corHex = ptr + 1;//Pega tudo depois do =
+                int valor = convertColor(corHex);
+                uint32_t prevVal = fullColor;
                 fullColor = valor;
-                printf("Alterou cor fullColor %d\n", fullColor);
-                shouldUpdateFullColor = true;
+                shouldSaveLeds = prevVal != fullColor;
+                shouldUpdateFullColor = prevVal != fullColor;
+                printf("Alterou cor total %d\n", fullColor);
+
             }
-        }else if(strncmp(comunicacao_data, "qc=", 3) == 0){// Define a quantidade de colunas de leds
+        }else if(strncmp(comunicacao_data, CMD_QUANTIDADE_COLUNAS, strlen(CMD_QUANTIDADE_COLUNAS)) == 0){// Define a quantidade de colunas de leds
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
                 int valor = atoi(ptr + 1); // Converte para int
+                if(valor < 1 || valor > amountLeds){
+                    valor = 1;
+                }
+                uint8_t prevVal = colunasLed;
                 colunasLed = valor;
+                ledsPorColuna = amountLeds / colunasLed;
+                shouldSaveLeds = prevVal != colunasLed;
                 printf("Alterou colunas de led para %d\n", colunasLed);
+            }
+        }else if(strncmp(comunicacao_data, CMD_SENSIBILITY_ADC, strlen(CMD_SENSIBILITY_ADC)) == 0){// Define um multiplicador para o ADC
+            char *ptr = strchr(comunicacao_data, '='); // Encontra '='
+            if(ptr != NULL){
+                int valor = atoi(ptr + 1); // Converte para int
+                if(valor < 1){
+                    valor = 1;
+                }
+                if(valor > 5){
+                    valor = 5;
+                }
+                uint8_t prevVal = sensibilityADC;
+                sensibilityADC = valor;
+                shouldSaveLeds = prevVal != sensibilityADC;
+                printf("Alterou sensibilidade ADC para %d\n", sensibilityADC);
             }
         }else{
             printf("Outro comando: %s\n", comunicacao_data);
         }
 
-    }else if(att_handle == ATT_CHARACTERISTIC_ORG_BLUETOOTH_CHARACTERISTIC_STRING_01_CLIENT_CONFIGURATION_HANDLE){
+    }/*else if(att_handle == ATT_CHARACTERISTIC_ORG_BLUETOOTH_CHARACTERISTIC_STRING_01_CLIENT_CONFIGURATION_HANDLE){
         printf("Alteração na configuração de TX:");
         for (size_t i = 0; i < buffer_size; i++)
         {
@@ -197,7 +286,7 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
         strncpy(comunicacao_data, (char *)buffer, buffer_size);
         comunicacao_data[buffer_size] = '\0';
         printf("Recebi novo valor: %s\n", comunicacao_data);
-    }else{
+    }*/else{
         printf("Outras alteração\n");
     }
 

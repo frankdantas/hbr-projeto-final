@@ -12,6 +12,7 @@
 #define PIN_LED_RED 13
 
 extern volatile uint16_t amountLeds;
+extern volatile uint16_t prevAmountLeds;
 extern volatile bool shouldStopEffect;
 extern volatile uint8_t efeitoAtivo;
 extern volatile uint32_t mainColor;
@@ -19,5 +20,9 @@ extern volatile uint32_t secondColor;
 extern volatile uint32_t fullColor;
 extern volatile bool shouldUpdateFullColor;
 extern volatile uint8_t colunasLed;
+extern volatile bool shouldSaveLeds;
+extern volatile uint8_t ledsPorColuna;
+extern volatile uint8_t sensibilityADC;
+extern volatile uint8_t messageFromDevice;
 
 #endif
