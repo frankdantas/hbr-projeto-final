@@ -5,11 +5,13 @@
 #include "stdio.h"
 
 #define RGB32(r,g,b) ((r << 8) | (g << 16) | b)
+#define CLAMP(x, min, max) (((x) < (min)) ? (min) : (((x) > (max)) ? (max) : (x)))
 
 #define WS2812_PIN 7
 #define MIC_CHANNEL 2
 #define MIC_PIN (26 + MIC_CHANNEL)
 #define PIN_LED_RED 13
+#define PIN_LED_GREEN 11
 
 extern volatile uint16_t amountLeds;
 extern volatile uint16_t prevAmountLeds;

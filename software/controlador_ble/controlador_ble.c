@@ -18,7 +18,8 @@
 
 //#define WAIT_FOR_SERIAL 1
 
-typedef struct{
+/// @brief Estrutura de configuração para salvar na flash
+typedef struct __attribute__((packed)){
     uint8_t amountLeds;
     uint8_t colunasLed;
     uint8_t efeitoAtivo;
@@ -27,16 +28,16 @@ typedef struct{
     uint32_t fullColor;
 }config_t;
 
-//uint32_t mainColor = 0;
-//uint32_t secondColor = 0;
+
+
 uint32_t currentColor = 0;
-uint32_t starterColor = 0;
+//uint32_t starterColor = 0;
 
 bool flagHelpColor = 0;
 bool flagHelpColorStarter = 0;
 
 static btstack_packet_callback_registration_t hci_event_callback_registration;
-config_t config = {0, 5, 0, RGB32(10, 0, 0), RGB32(0, 10, 0), RGB32(20, 20, 20)};
+config_t config = {25, 5, 0, RGB32(10, 0, 0), RGB32(0, 10, 0), RGB32(20, 20, 20)};
 
 
 
@@ -45,7 +46,7 @@ void init_cores(){
     secondColor = RGB32(0, 10, 0);
 
     currentColor = mainColor;
-    starterColor = mainColor;
+    //starterColor = mainColor;
 }
 
 bool init_ble(){
@@ -63,17 +64,18 @@ bool init_ble(){
     hci_event_callback_registration.callback = &packet_handler;
     hci_add_event_handler(&hci_event_callback_registration);
 
-    // register for ATT event
+    // registra o callback
     att_server_register_packet_handler(packet_handler);
 
-    // turn on bluetooth!
+    // liga o bluetooth
     hci_power_control(HCI_POWER_ON);
 
-    return true;}
+    return true;
+}
 
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
-    if(x < in_min) return out_min;
-    if(x > in_max) return out_max;
+    if(x <= in_min) return out_min;
+    if(x >= in_max) return out_max;
 
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
@@ -236,12 +238,16 @@ void setup_led(){
     gpio_init(PIN_LED_RED);
     gpio_set_dir(PIN_LED_RED, GPIO_OUT);
     gpio_put(PIN_LED_RED, 0);
+
+    gpio_init(PIN_LED_GREEN);
+    gpio_set_dir(PIN_LED_GREEN, GPIO_OUT);
+    gpio_put(PIN_LED_GREEN, 0);
 }
 
-uint8_t read_adc_mapped(uint8_t sensibilidade, uint8_t maxValue){
+uint8_t read_adc_mapped(uint8_t sensibilidade, uint8_t maxValue, int offset){
     int ad_raw = adc_read(); //map(adc_read(), 0, 4095, 0, 25);//Le o ad mas sempre na metado do valor total
     ad_raw -= 2048;//Coloco tudo na linha d0 0
-    ad_raw = (ad_raw < 0) ? -ad_raw : ad_raw;
+    ad_raw = ((ad_raw < 0) ? -ad_raw : ad_raw) + offset;
     //ad_raw = (ad_raw < 0) ? 0 : ad_raw;
 
     ad_raw = ad_raw * sensibilidade;
@@ -343,7 +349,7 @@ int main()
 
     const char *fileName = "/config.cfg";
 
-    readFS(fileName);
+    
 
     if(!iniciouBLE){
         while(true){
@@ -354,6 +360,8 @@ int main()
         }
         return 0;
     }
+
+    readFS(fileName);
 
     PIO pio;//Objeto PIO para a matriz de led
     uint sm;//Objeto SM stateMachine para a matriz de led
@@ -374,6 +382,7 @@ int main()
 
     // Led vermelho ligado, modo espera
     gpio_put(PIN_LED_RED, (efeitoAtivo == 0));
+    gpio_put(PIN_LED_GREEN, (efeitoAtivo != 0));
 
     ledsPorColuna = amountLeds / colunasLed;
     shouldUpdateFullColor = true;
@@ -401,12 +410,12 @@ int main()
                 }
             break;
             case 4:
-                adc_value = read_adc_mapped(sensibilityADC, amountLeds + 1);
+                adc_value = read_adc_mapped(sensibilityADC, amountLeds + 1, -200);
                 efeito4(&pio, sm, adc_value);
             break;
             case 5:
                 //uint8_t ledsPorColuna = amountLeds / colunasLed;
-                adc_value = read_adc_mapped(sensibilityADC, ledsPorColuna + 1);
+                adc_value = read_adc_mapped(sensibilityADC, ledsPorColuna + 1, -100);
                 efeito5(&pio, sm, adc_value);
             break;
             default:

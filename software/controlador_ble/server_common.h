@@ -10,8 +10,8 @@
 #include "btstack.h"
 #include "shared_vars.h"
 
-extern int le_notification_enabled;
-extern hci_con_handle_t con_handle;
+//extern int le_notification_enabled;
+//extern hci_con_handle_t con_handle;
 extern char comunicacao_data[31];
 extern uint8_t const profile_data[];
 

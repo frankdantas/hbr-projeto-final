@@ -19,18 +19,20 @@
 #define CMD_FULL_COLOR "FC="
 #define CMD_SENSIBILITY_ADC "SA="
 #define CMD_QUANTIDADE_COLUNAS "QC="
+#define CMD_SAVE "SAVE"
 
 
 #define APP_AD_FLAGS 0x06
 static uint8_t adv_data[] = {
     0x02, BLUETOOTH_DATA_TYPE_FLAGS, APP_AD_FLAGS,
-    0x08, BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME, 'C', 't', 'r', 'l', 'B', 'L', 'E',
-    0x03, BLUETOOTH_DATA_TYPE_COMPLETE_LIST_OF_16_BIT_SERVICE_CLASS_UUIDS, 0x1a, 0x18,
+    0x08, BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME, 'C', 't', 'r', 'l', 'B', 'L', 'E',//Nome do dispositivo
+    0x03, BLUETOOTH_DATA_TYPE_COMPLETE_LIST_OF_16_BIT_SERVICE_CLASS_UUIDS, 0xF0, 0xFF,//Serviço custom
+    //0x03, BLUETOOTH_DATA_TYPE_COMPLETE_LIST_OF_16_BIT_SERVICE_CLASS_UUIDS, 0x1a, 0x18,
 };
 static const uint8_t adv_data_len = sizeof(adv_data);
 
-int le_notification_enabled = 0;
-hci_con_handle_t con_handle;
+//int le_notification_enabled = 0;
+//hci_con_handle_t con_handle;
 char comunicacao_data[31] = {0};
 
 void verify_event(uint8_t event) {
@@ -57,13 +59,18 @@ void verify_event(uint8_t event) {
     
 }
 
-uint32_t convertColor(const char* corHex){
+uint32_t convertColor(const char* corHex, uint32_t defaultColor){
 
     if(corHex != NULL){
+        printf("Cor Hex: %s, tamanho: %d\n", corHex, strlen(corHex));
+        if(strlen(corHex) != 6){
+            printf("Formato de cor inválido!\n");
+            return defaultColor;
+        }
         uint32_t rgb;
         if (sscanf(corHex, "%06X", &rgb) != 1) {
             printf("Formato de cor inválido!\n");
-            return 0;
+            return defaultColor;
         }
 
         // Separa as cores RGB
@@ -101,12 +108,12 @@ void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint
         att_server_notify(con_handle, ATT_CHARACTERISTIC_ORG_BLUETOOTH_CHARACTERISTIC_STRING_01_VALUE_HANDLE, &message, sizeof(message));
     }*/
     if (hci_event_packet_get_type(packet) == HCI_EVENT_DISCONNECTION_COMPLETE) {
-        le_notification_enabled = 0;
+        //le_notification_enabled = 0;
         printf("Desconectou\n");
         //gpio_put(PIN_LED_RED, 1);
     }
     if (hci_event_packet_get_type(packet) == ATT_EVENT_CONNECTED) {
-        le_notification_enabled = 0;
+        //le_notification_enabled = 0;
         printf("Conectou\n");
         //gpio_put(PIN_LED_RED, 0);
     }
@@ -150,26 +157,27 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
                 int valor = atoi(ptr + 1); // Converte para int
+                valor = CLAMP(valor, 0, 5);
                 uint8_t prevVal = efeitoAtivo;
                 efeitoAtivo = valor;
                 shouldStopEffect = (prevVal != efeitoAtivo);
-                shouldSaveLeds = (prevVal != efeitoAtivo);
+                //shouldSaveLeds = (prevVal != efeitoAtivo);
                 printf("Ativou efeito %d\n", efeitoAtivo);
                 gpio_put(PIN_LED_RED, (efeitoAtivo == 0));
+                gpio_put(PIN_LED_GREEN, (efeitoAtivo != 0));
             }
         }else if(strncmp(comunicacao_data, CMD_NUMERO_LEDS, strlen(CMD_NUMERO_LEDS)) == 0){// Define a quantidade de leds, verifica se os 3 primeiros caracteres sao 'nl='
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
                 int valor = atoi(ptr + 1); // Converte para int
-                if(valor <= 0){
-                    return 0;
-                }
+                valor = CLAMP(valor, 0, 255);
+
                 uint8_t prevVal = amountLeds;
                 prevAmountLeds = amountLeds;
                 amountLeds = valor;
                 shouldStopEffect = (prevVal != efeitoAtivo);
                 ledsPorColuna = amountLeds / colunasLed;
-                shouldSaveLeds = prevVal != amountLeds;
+                //shouldSaveLeds = prevVal != amountLeds;
                 printf("Ativou %d leds\n", amountLeds);
 
                 /*if(amountLeds == 0){
@@ -186,31 +194,23 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
             char *ptr = strchr(comunicacao_data, '='); // Encontra '=' e pega tudo a partir dele, inclusive o =
             if(ptr != NULL){
                 const char *corHex = ptr + 1;//Pega tudo depois do =
-                int valor = convertColor(corHex);
                 uint32_t prevVal = mainColor;
+                int valor = convertColor(corHex, prevVal);
+                
                 mainColor = valor;
-                shouldSaveLeds = prevVal != mainColor;
+                //shouldSaveLeds = prevVal != mainColor;
                 printf("Alterou cor principal %d\n", mainColor);
 
             }
-            /*if(ptr != NULL){
-                int valor = atoi(ptr + 1); // Converte para int
-                if(valor <= 0){
-                    return 0;
-                }
-                uint32_t prevVal = mainColor;
-                mainColor = valor;
-                shouldSaveLeds = prevVal != mainColor;
-                printf("Alterou cor principal %d\n", mainColor);
-            }*/
         }else if(strncmp(comunicacao_data, CMD_SECOND_COLOR, strlen(CMD_SECOND_COLOR)) == 0){// Define a secondColor, verifica se os 3 primeiros caracteres sao 'c2='
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
                 const char *corHex = ptr + 1;//Pega tudo depois do =
-                int valor = convertColor(corHex);
                 uint32_t prevVal = secondColor;
+                int valor = convertColor(corHex, prevVal);
+                
                 secondColor = valor;
-                shouldSaveLeds = prevVal != secondColor;
+                //shouldSaveLeds = prevVal != secondColor;
                 printf("Alterou cor secundaria %d\n", secondColor);
 
             }
@@ -218,10 +218,11 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
                 const char *corHex = ptr + 1;//Pega tudo depois do =
-                int valor = convertColor(corHex);
                 uint32_t prevVal = fullColor;
+                int valor = convertColor(corHex, prevVal);
+                
                 fullColor = valor;
-                shouldSaveLeds = prevVal != fullColor;
+                //shouldSaveLeds = prevVal != fullColor;
                 shouldUpdateFullColor = prevVal != fullColor;
                 printf("Alterou cor total %d\n", fullColor);
 
@@ -230,30 +231,26 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
                 int valor = atoi(ptr + 1); // Converte para int
-                if(valor < 1 || valor > amountLeds){
-                    valor = 1;
-                }
+                valor = CLAMP(valor, 1, amountLeds);
                 uint8_t prevVal = colunasLed;
                 colunasLed = valor;
                 ledsPorColuna = amountLeds / colunasLed;
-                shouldSaveLeds = prevVal != colunasLed;
+                //shouldSaveLeds = prevVal != colunasLed;
                 printf("Alterou colunas de led para %d\n", colunasLed);
             }
         }else if(strncmp(comunicacao_data, CMD_SENSIBILITY_ADC, strlen(CMD_SENSIBILITY_ADC)) == 0){// Define um multiplicador para o ADC
             char *ptr = strchr(comunicacao_data, '='); // Encontra '='
             if(ptr != NULL){
                 int valor = atoi(ptr + 1); // Converte para int
-                if(valor < 1){
-                    valor = 1;
-                }
-                if(valor > 5){
-                    valor = 5;
-                }
+                valor = CLAMP(valor, 1, 5);
                 uint8_t prevVal = sensibilityADC;
                 sensibilityADC = valor;
-                shouldSaveLeds = prevVal != sensibilityADC;
+                //shouldSaveLeds = prevVal != sensibilityADC;
                 printf("Alterou sensibilidade ADC para %d\n", sensibilityADC);
             }
+        }else if(strncmp(comunicacao_data, CMD_SAVE, strlen(CMD_SAVE)) == 0){// Salva as mudanças na flash
+            shouldSaveLeds = true;
+            printf("Salvar na flash as mudancas\n");
         }else{
             printf("Outro comando: %s\n", comunicacao_data);
         }
@@ -292,7 +289,3 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
 
     return 0;
 }
-
-void poll_temp(void) {
-    printf("Chamou poll_temp\n");
- }
