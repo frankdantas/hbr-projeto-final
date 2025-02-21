@@ -128,9 +128,7 @@ uint16_t att_read_callback(hci_con_handle_t connection_handle, uint16_t att_hand
 
      if(att_handle == ATT_CHARACTERISTIC_1191e8b3_5c6b_417c_b7b5_813ec84a757e_01_VALUE_HANDLE){
         printf("Solicitou valor de RX\n");
-     }/*else if(att_handle == ATT_CHARACTERISTIC_ORG_BLUETOOTH_CHARACTERISTIC_STRING_01_VALUE_HANDLE){
-        printf("Solicitou valor de TX\n");
-     }*/
+     }
 
     return 0;
 }
@@ -161,7 +159,6 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
                 uint8_t prevVal = efeitoAtivo;
                 efeitoAtivo = valor;
                 shouldStopEffect = (prevVal != efeitoAtivo);
-                //shouldSaveLeds = (prevVal != efeitoAtivo);
                 printf("Ativou efeito %d\n", efeitoAtivo);
                 gpio_put(PIN_LED_RED, (efeitoAtivo == 0));
                 gpio_put(PIN_LED_GREEN, (efeitoAtivo != 0));
@@ -180,15 +177,7 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
                 //shouldSaveLeds = prevVal != amountLeds;
                 printf("Ativou %d leds\n", amountLeds);
 
-                /*if(amountLeds == 0){
-                    amountLeds = valor;
-                    shouldStopEffect = true;
-                    shouldSaveLeds = true;
-                    printf("Ativou %d leds\n", amountLeds);
-                }else{
-                    printf("Nao pode alterar a quantidade de leds depois de iniciado\n");
-                }*/
-                
+    
             }
         }else if(strncmp(comunicacao_data, CMD_MAIN_COLOR, strlen(CMD_MAIN_COLOR)) == 0){// Define a mainColor
             char *ptr = strchr(comunicacao_data, '='); // Encontra '=' e pega tudo a partir dele, inclusive o =
@@ -198,7 +187,6 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
                 int valor = convertColor(corHex, prevVal);
                 
                 mainColor = valor;
-                //shouldSaveLeds = prevVal != mainColor;
                 printf("Alterou cor principal %d\n", mainColor);
 
             }
@@ -210,7 +198,6 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
                 int valor = convertColor(corHex, prevVal);
                 
                 secondColor = valor;
-                //shouldSaveLeds = prevVal != secondColor;
                 printf("Alterou cor secundaria %d\n", secondColor);
 
             }
@@ -222,7 +209,6 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
                 int valor = convertColor(corHex, prevVal);
                 
                 fullColor = valor;
-                //shouldSaveLeds = prevVal != fullColor;
                 shouldUpdateFullColor = prevVal != fullColor;
                 printf("Alterou cor total %d\n", fullColor);
 
@@ -235,7 +221,6 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
                 uint8_t prevVal = colunasLed;
                 colunasLed = valor;
                 ledsPorColuna = amountLeds / colunasLed;
-                //shouldSaveLeds = prevVal != colunasLed;
                 printf("Alterou colunas de led para %d\n", colunasLed);
             }
         }else if(strncmp(comunicacao_data, CMD_SENSIBILITY_ADC, strlen(CMD_SENSIBILITY_ADC)) == 0){// Define um multiplicador para o ADC
@@ -245,7 +230,6 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
                 valor = CLAMP(valor, 1, 5);
                 uint8_t prevVal = sensibilityADC;
                 sensibilityADC = valor;
-                //shouldSaveLeds = prevVal != sensibilityADC;
                 printf("Alterou sensibilidade ADC para %d\n", sensibilityADC);
             }
         }else if(strncmp(comunicacao_data, CMD_SAVE, strlen(CMD_SAVE)) == 0){// Salva as mudanças na flash
@@ -255,35 +239,7 @@ int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, 
             printf("Outro comando: %s\n", comunicacao_data);
         }
 
-    }/*else if(att_handle == ATT_CHARACTERISTIC_ORG_BLUETOOTH_CHARACTERISTIC_STRING_01_CLIENT_CONFIGURATION_HANDLE){
-        printf("Alteração na configuração de TX:");
-        for (size_t i = 0; i < buffer_size; i++)
-        {
-            printf("%02x  ", buffer[i]);
-        }
-        printf("\n");
-
-        uint16_t config = little_endian_read_16(buffer, 0);
-        if(config == GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_NOTIFICATION){
-            le_notification_enabled = 1;
-            con_handle = connection_handle;
-            printf("Notificação ativada no TX no con_handle: %d\n", con_handle);
-        }else{
-            le_notification_enabled = 0;
-            printf("Notificação desativada no TX\n");
-        }
-
-    }else if(att_handle == ATT_CHARACTERISTIC_ORG_BLUETOOTH_CHARACTERISTIC_STRING_01_VALUE_HANDLE){
-        printf("Alteração no valor de TX:");
-        for (size_t i = 0; i < buffer_size; i++)
-        {
-            printf("%02x  ", buffer[i]);
-        }
-        printf("\n");
-        strncpy(comunicacao_data, (char *)buffer, buffer_size);
-        comunicacao_data[buffer_size] = '\0';
-        printf("Recebi novo valor: %s\n", comunicacao_data);
-    }*/else{
+    }else{
         printf("Outras alteração\n");
     }
 
