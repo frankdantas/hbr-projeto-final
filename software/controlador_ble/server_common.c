@@ -27,14 +27,13 @@ static uint8_t adv_data[] = {
     0x02, BLUETOOTH_DATA_TYPE_FLAGS, APP_AD_FLAGS,
     0x08, BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME, 'C', 't', 'r', 'l', 'B', 'L', 'E',//Nome do dispositivo
     0x03, BLUETOOTH_DATA_TYPE_COMPLETE_LIST_OF_16_BIT_SERVICE_CLASS_UUIDS, 0xF0, 0xFF,//Serviço custom
-    //0x03, BLUETOOTH_DATA_TYPE_COMPLETE_LIST_OF_16_BIT_SERVICE_CLASS_UUIDS, 0x1a, 0x18,
 };
 static const uint8_t adv_data_len = sizeof(adv_data);
 
-//int le_notification_enabled = 0;
-//hci_con_handle_t con_handle;
 char comunicacao_data[31] = {0};
 
+/// @brief Função de log para testar os eventos
+/// @param event evento
 void verify_event(uint8_t event) {
     uint8_t valores[] = {
         HCI_EVENT_NOP,
@@ -59,6 +58,10 @@ void verify_event(uint8_t event) {
     
 }
 
+/// @brief Converte uma cor no formato hex para 24bits
+/// @param corHex Cor hex
+/// @param defaultColor cor default, caso a conversão falhe
+/// @return a cor convertida
 uint32_t convertColor(const char* corHex, uint32_t defaultColor){
 
     if(corHex != NULL){
@@ -85,6 +88,11 @@ uint32_t convertColor(const char* corHex, uint32_t defaultColor){
     return 0;
 }
 
+/// @brief Gerancia eventos de conexão, desconexão e notificação
+/// @param packet_type Tipo do pacote
+/// @param channel Canal
+/// @param packet Dados do pacote
+/// @param size Tamanho do pacote
 void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size) {
     UNUSED(channel);
     //printf("Executou funcao packet_handler, type: %02x, packet: %04x\n", packet_type, hci_event_packet_get_type(packet));
@@ -121,6 +129,8 @@ void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint
     
 }
 
+/// @brief Gerencia quando o dispositivo conectado solicita a leitura de alguma caracteristica
+// Não usado por enquanto
 uint16_t att_read_callback(hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t offset, uint8_t * buffer, uint16_t buffer_size) {
      UNUSED(connection_handle);
 
@@ -133,7 +143,12 @@ uint16_t att_read_callback(hci_con_handle_t connection_handle, uint16_t att_hand
     return 0;
 }
 
-
+/// @brief gerencia quando o dispositivo conectado solicita a escrita de alguma caracteristica
+/// @param connection_handle manipulador da conexão
+/// @param att_handle endereço solicitado
+/// @param buffer Dados escritos
+/// @param buffer_size Tamanho do buffer
+/// @return 
 int att_write_callback(hci_con_handle_t connection_handle, uint16_t att_handle, uint16_t transaction_mode, uint16_t offset, uint8_t *buffer, uint16_t buffer_size) {
     UNUSED(transaction_mode);
 

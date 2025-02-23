@@ -30,17 +30,17 @@ typedef struct __attribute__((packed)){
 
 
 
-uint32_t currentColor = 0;
-//uint32_t starterColor = 0;
-
-bool flagHelpColor = 0;
-bool flagHelpColorStarter = 0;
-
-static btstack_packet_callback_registration_t hci_event_callback_registration;
-config_t config = {25, 5, 0, RGB32(10, 0, 0), RGB32(0, 10, 0), RGB32(20, 20, 20)};
+uint32_t currentColor = 0; // Auxiliar para efeito de cor 1 e 2
+bool flagHelpColor = 0;// Auxiliar para efeito de cor 1 e 2
+bool flagHelpColorStarter = 0;// Auxiliar para efeito de cor 1 e 2
 
 
+static btstack_packet_callback_registration_t hci_event_callback_registration;// Para registro de callback do BLE
 
+config_t config = {25, 5, 0, RGB32(10, 0, 0), RGB32(0, 10, 0), RGB32(20, 20, 20)};// Struct para configuração atual/salva
+
+
+/// Iniciar as cores
 void init_cores(){
     mainColor = RGB32(10, 0, 0);
     secondColor = RGB32(0, 10, 0);
@@ -49,6 +49,7 @@ void init_cores(){
     //starterColor = mainColor;
 }
 
+/// Iniciar o BLE
 bool init_ble(){
     if (cyw43_arch_init()) {
         printf("failed to initialise cyw43_arch\n");
@@ -60,11 +61,9 @@ bool init_ble(){
 
     att_server_init(profile_data, att_read_callback, att_write_callback);    
 
-    // inform about BTstack state
+    // registra o callback do comportamento BLE
     hci_event_callback_registration.callback = &packet_handler;
     hci_add_event_handler(&hci_event_callback_registration);
-
-    // registra o callback
     att_server_register_packet_handler(packet_handler);
 
     // liga o bluetooth
@@ -73,6 +72,7 @@ bool init_ble(){
     return true;
 }
 
+/// Mapeamento de valores
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
     if(x <= in_min) return out_min;
     if(x >= in_max) return out_max;
@@ -80,11 +80,18 @@ long map(long x, long in_min, long in_max, long out_min, long out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-
+/// @brief Envia uma cor para a saida PIO que controla os leds
+/// @param pio Interface pio
+/// @param sm State machine
+/// @param pixel_grb cor
 static inline void put_pixel(PIO pio, uint sm, uint32_t pixel_grb) {
     pio_sm_put_blocking(pio, sm, pixel_grb << 8u);
 }
 
+/// @brief Apaga todos os leds
+/// @param pio Interface pio
+/// @param sm State machine
+/// @param hasDelay Inclui ou nao um delay no final
 void clear_all(PIO *pio, uint sm, uint8_t hasDelay){
     printf("Cleaning leds\n");
     uint8_t maxLedCount = amountLeds > prevAmountLeds ? amountLeds : prevAmountLeds;
@@ -97,6 +104,9 @@ void clear_all(PIO *pio, uint sm, uint8_t hasDelay){
     
 }
 
+/// @brief Efeito que uma cor segue a outra
+/// @param pio Interface pio
+/// @param sm State machine
 void efeito1(PIO *pio, uint sm){
     printf("Executou efeito 1\n");
     static uint8_t offset_inicio = 0;
@@ -130,6 +140,9 @@ void efeito1(PIO *pio, uint sm){
     
 }
 
+/// @brief Efeito que vai preenchendo toda a matriz de uma cor depois inverte
+/// @param pio Interface pio
+/// @param sm State machine
 void efeito2(PIO *pio, uint sm){
     printf("Executou efeito 2\n");
     for (size_t i = 0; i < amountLeds && !shouldStopEffect; i++)
@@ -144,6 +157,9 @@ void efeito2(PIO *pio, uint sm){
     currentColor = currentColor == mainColor ? secondColor : mainColor;
 }
 
+/// @brief Efeito que deixa a matriz toda com uma unica cor
+/// @param pio Interface pio
+/// @param sm State machine
 void efeito3(PIO *pio, uint sm){
     printf("Executou efeito 3 com cor 0x%08x em %d leds\n", fullColor, amountLeds);
     uint8_t log = 0;
@@ -155,6 +171,10 @@ void efeito3(PIO *pio, uint sm){
     printf("Executou efeito 3 com %d leds\n", log);
 }
 
+/// @brief Efeito que preenche uma quantiadade X de leds na matriz
+/// @param pio Interface pio
+/// @param sm State machine
+/// @param qtdLeds Quantidade de leds para acender
 void efeito4(PIO *pio, uint sm, uint16_t qtdLeds){
     printf("Executou efeito 4\n");
     for(int i = 0; i < amountLeds && !shouldStopEffect; i++){
@@ -166,6 +186,10 @@ void efeito4(PIO *pio, uint sm, uint16_t qtdLeds){
     }
 }
 
+/// @brief Efeito que faz a matriz parecer barras coloridas
+/// @param pio Interface pio
+/// @param sm State machine
+/// @param qtdLeds Quantidade média de leds que deve acender na barra
 void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
     printf("Executou efeito 5\n");
     const uint8_t maxCores = 7;
@@ -179,15 +203,15 @@ void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
       RGB32(255, 0, 255)  
     };
 
+    // Se leds for 0, então apaga a matriz
     if(qtdLeds < 1){
         clear_all(pio, sm, false);
         return;
     }
 
-    uint8_t indexPar = 0;
-    uint8_t indexImpar = 9;
+    //uint8_t indexPar = 0;
+    //uint8_t indexImpar = 9;
     uint8_t indexCor = 0;
-    //uint8_t ledsPorColuna = amountLeds / colunasLed;
     uint32_t *coresColuna = malloc(ledsPorColuna * sizeof(uint32_t));
 
     for (size_t i = 0; i < colunasLed && !shouldStopEffect; i++)
@@ -195,9 +219,10 @@ void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
         bool colunaPar = i % 2 == 0;
         uint32_t cor = arco_iris[indexCor];
 
-        //uint8_t rnd = random() % ledsPorColuna;
-        uint8_t rnd = random() % qtdLeds;
         
+        uint8_t rnd = random() % qtdLeds; // Sorteia um numero entre 0 e quantiade de leds maximo para acender
+        
+        // Cria a matriz com cor ou não de acordo com o sorteio
         for (size_t j = 0; j < ledsPorColuna; j++){
             if(j <= rnd){
                 coresColuna[j] = cor;
@@ -205,6 +230,9 @@ void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
                 coresColuna[j] = 0x0;
             }
         }
+
+
+        // Pinta a coluna
         if(colunaPar){
             for (size_t k = 0; k < ledsPorColuna; k++)
             {
@@ -218,31 +246,10 @@ void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
         }
 
         /*if(colunaPar){
-            for (size_t j = 0; j < ledsPorColuna; j++){
-                if(j <= rnd){
-                    put_pixel(*pio, sm, cor);
-                }else{
-                    put_pixel(*pio, sm, RGB32(0, 0, 0));
-                }
-            }
-        }else{
-            for (size_t j = 0; j < ledsPorColuna; j++){
-                if(j < (ledsPorColuna - rnd)){
-                    put_pixel(*pio, sm, RGB32(0,0,0));
-                }else{
-                    put_pixel(*pio, sm, cor);
-                }
-            }
-        }*/
-
-
-
-
-        if(colunaPar){
             indexPar += 10;
         }else{
             indexImpar += 10;
-        }
+        }*/
 
         ++indexCor;
         if(indexCor > maxCores-1){indexCor = 0;}
@@ -252,13 +259,14 @@ void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
 }
 
 
-
+/// @brief Configura o ADC para leitura do microfone
 void setup_adc(){
     adc_gpio_init(MIC_PIN);
     adc_init();
     adc_select_input(MIC_CHANNEL);
 }
 
+/// @brief Configura os leds
 void setup_led(){
     gpio_init(PIN_LED_RED);
     gpio_set_dir(PIN_LED_RED, GPIO_OUT);
@@ -269,11 +277,16 @@ void setup_led(){
     gpio_put(PIN_LED_GREEN, 0);
 }
 
+/// @brief Faz a leitura do ADC e mapeia o valor para a quantidade de leds
+/// @param sensibilidade Multiplicador para o ADC
+/// @param maxValue Valor maximo permitido de leds
+/// @param offset Serve como deslocamento positivo ou negatico do valor lido
+/// @return 
 uint8_t read_adc_mapped(uint8_t sensibilidade, uint8_t maxValue, int offset){
-    int ad_raw = adc_read(); //map(adc_read(), 0, 4095, 0, 25);//Le o ad mas sempre na metado do valor total
+    int ad_raw = adc_read();
+
     ad_raw -= 2048;//Coloco tudo na linha d0 0
     ad_raw = ((ad_raw < 0) ? -ad_raw : ad_raw) + offset;
-    //ad_raw = (ad_raw < 0) ? 0 : ad_raw;
 
     ad_raw = ad_raw * sensibilidade;
         
@@ -283,6 +296,8 @@ uint8_t read_adc_mapped(uint8_t sensibilidade, uint8_t maxValue, int offset){
     return quatidade;
 }
 
+/// @brief Salva as config na flash
+/// @param fileName Nome do arquivo
 void saveFS(const char *fileName){
     if (pico_mount(false) < 0) {
         printf("Mount failed\n");
@@ -316,6 +331,8 @@ void saveFS(const char *fileName){
 }
 
 
+/// @brief Faz a leitura do arquivo da flash
+/// @param fileName Nome do arquivo
 void readFS(const char *fileName){
 
     if (pico_mount(false) < 0) {
@@ -375,7 +392,7 @@ int main()
     const char *fileName = "/config.cfg";
 
     
-
+    // Se não iniciou o BLE então entra num loop infinito piscando o led vermelho
     if(!iniciouBLE){
         while(true){
             gpio_put(PIN_LED_RED, 1);
@@ -386,19 +403,21 @@ int main()
         return 0;
     }
 
+    // Leitura das configs salvas
     readFS(fileName);
 
     PIO pio;//Objeto PIO para a matriz de led
     uint sm;//Objeto SM stateMachine para a matriz de led
     uint offset = 0;
 
+    // Inicio do PIO
     bool success = pio_claim_free_sm_and_add_program_for_gpio_range(&ws2812_program, &pio, &sm, &offset, WS2812_PIN, 1, true);
     ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, false);
     sleep_ms(100);
     
 
+    // Limpa a matriz
     clear_all(&pio, sm, true);
-    //sleep_ms(50);
 
     static absolute_time_t last_run_efeito1 = 0;
     static absolute_time_t last_run_efeito2 = 0;
@@ -406,13 +425,13 @@ int main()
     uint16_t adc_value = 0;
 
     // Led vermelho ligado, modo espera
+    // Led verde ligado, alguem efeito ativo
     gpio_put(PIN_LED_RED, (efeitoAtivo == 0));
     gpio_put(PIN_LED_GREEN, (efeitoAtivo != 0));
 
+    // Calculo padão de valores para o efeito 5
     ledsPorColuna = amountLeds / colunasLed;
     shouldUpdateFullColor = true;
-
-    //sleep_ms(500);
     
     while (true) {
         switch(efeitoAtivo){

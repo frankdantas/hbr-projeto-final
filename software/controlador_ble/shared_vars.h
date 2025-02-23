@@ -13,18 +13,18 @@
 #define PIN_LED_RED 13
 #define PIN_LED_GREEN 11
 
-extern volatile uint16_t amountLeds;
-extern volatile uint16_t prevAmountLeds;
-extern volatile bool shouldStopEffect;
-extern volatile uint8_t efeitoAtivo;
-extern volatile uint32_t mainColor;
-extern volatile uint32_t secondColor;
-extern volatile uint32_t fullColor;
-extern volatile bool shouldUpdateFullColor;
-extern volatile uint8_t colunasLed;
-extern volatile bool shouldSaveLeds;
-extern volatile uint8_t ledsPorColuna;
-extern volatile uint8_t sensibilityADC;
-extern volatile uint8_t messageFromDevice;
+extern volatile uint16_t amountLeds;//Quantidade de leds para controlar
+extern volatile uint16_t prevAmountLeds;//Quantidade de leds anteriores à modificação para controlar
+extern volatile bool shouldStopEffect;//Indica se o efeito deve ser parado
+extern volatile uint8_t efeitoAtivo;//Indica qual efeito deve ser executado
+extern volatile uint32_t mainColor;//Cor principal do efeito
+extern volatile uint32_t secondColor;//Cor secundária do efeito
+extern volatile uint32_t fullColor;//Cor completa do efeito
+extern volatile bool shouldUpdateFullColor;//Indica se a cor completa deve ser atualizada
+extern volatile uint8_t colunasLed;//Quantidade de colunas de leds
+extern volatile bool shouldSaveLeds;//Indica se as comfigs de led devem ser salvas
+extern volatile uint8_t ledsPorColuna;//Quantidade de leds por coluna
+extern volatile uint8_t sensibilityADC;//Sensibilidade do ADC
+//extern volatile uint8_t messageFromDevice;//Mensagem recebida do dispositivo
 
 #endif

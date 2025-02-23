@@ -13,4 +13,4 @@ volatile uint8_t colunasLed = 5;
 volatile bool shouldSaveLeds = false;
 volatile uint8_t ledsPorColuna = 1;
 volatile uint8_t sensibilityADC = 1;
-volatile uint8_t messageFromDevice = 0;
+//volatile uint8_t messageFromDevice = 0;
