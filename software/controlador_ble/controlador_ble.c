@@ -188,6 +188,7 @@ void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
     uint8_t indexImpar = 9;
     uint8_t indexCor = 0;
     //uint8_t ledsPorColuna = amountLeds / colunasLed;
+    uint32_t *coresColuna = malloc(ledsPorColuna * sizeof(uint32_t));
 
     for (size_t i = 0; i < colunasLed && !shouldStopEffect; i++)
     {
@@ -196,7 +197,27 @@ void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
 
         //uint8_t rnd = random() % ledsPorColuna;
         uint8_t rnd = random() % qtdLeds;
+        
+        for (size_t j = 0; j < ledsPorColuna; j++){
+            if(j <= rnd){
+                coresColuna[j] = cor;
+            }else{
+                coresColuna[j] = 0x0;
+            }
+        }
         if(colunaPar){
+            for (size_t k = 0; k < ledsPorColuna; k++)
+            {
+                put_pixel(*pio, sm, coresColuna[k]);
+            }
+        }else{
+            for (int k = ledsPorColuna - 1; k >= 0; k--)
+            {
+                put_pixel(*pio, sm, coresColuna[k]);
+            }
+        }
+
+        /*if(colunaPar){
             for (size_t j = 0; j < ledsPorColuna; j++){
                 if(j <= rnd){
                     put_pixel(*pio, sm, cor);
@@ -212,7 +233,9 @@ void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
                     put_pixel(*pio, sm, cor);
                 }
             }
-        }
+        }*/
+
+
 
 
         if(colunaPar){
@@ -224,6 +247,8 @@ void efeito5(PIO *pio, uint sm, uint8_t qtdLeds){
         ++indexCor;
         if(indexCor > maxCores-1){indexCor = 0;}
     }
+
+    free(coresColuna);
 }
 
 

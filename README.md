@@ -9,7 +9,7 @@
 
 O **LAC (Light Ambient Controller)** é um controlador configurável para LEDs endereçáveis com o chip **WS2812**, projetado para oferecer versatilidade na iluminação de ambientes. A configuração e o controle são realizados via **Bluetooth Low Energy (BLE)**, utilizando o microcontrolador **Raspberry Pi Pico W**.
 
-Diferente de soluções que dependem de Wi-Fi, o LAC permite o ajuste direto via BLE, garantindo maior mobilidade e independência de redes externas. Além disso, conta com um **microfone MAX4466EXK**, que possibilita efeitos luminosos interativos em resposta ao som ambiente. O dispositivo também armazena as últimas configurações, preservando as preferências do usuário mesmo após reinicializações.
+Diferente de soluções que dependem de Wi-Fi, o LAC permite o ajuste direto via BLE, garantindo maior mobilidade e independência de redes externas. Além disso, conta com um microfone com amplificador **MAX4466EXK**, que possibilita efeitos luminosos interativos em resposta ao som ambiente. O dispositivo também armazena as últimas configurações, preservando as preferências do usuário mesmo após reinicializações.
 
 
 ### Objetivos do Projeto
@@ -152,13 +152,13 @@ Alimentação: 5V
 
 ### Blocos funcionais e descrição
 
-![image-20250221000004632](./assets/image-20250221000004632.png)
+![image-20250222090146836](./assets/image-20250222090146836.png)
 
 | Camada          | Descrição                                                    |
 | --------------- | ------------------------------------------------------------ |
 | PIO             | Interface programavel para envio dos comandos seguindo o protocolo específico dos leds WS2812, eliminando trabalho da CPU. |
 | Comunicação BLE | Interface de comunicação sem fio Bluetooth Low Energy, responsável pelo tráfego de dados entre o dispositivo e o aplicativo controlador. |
-| Aplicação       | Responsável pelo processamento central do código, trabalha os dados recebidos por BLE, e controla os comandos enviados à camada PIO. |
+| Aplicação       | Responsável pelo processamento central do código, trabalha os dados recebidos por BLE, controla os comandos enviados à camada PIO para controle do WS2812 e saída digital do led de status. |
 | Persistência    | Camada responsável por salvar configurações do usuário na flash do dispositivo. |
 
 ### Definição das variáveis importantes
@@ -182,7 +182,7 @@ O código completo pode ser encontrado em: https://github.com/frankdantas/hbr-pr
 
 ### Inicialização
 
-O software inicia configurando os GPIOs de entrada e saída de microfone e led de status, em seguida tenta a inicialização do BLE (anúncio e registro dos callback) e caso não seja possível  inicializar, o led vermelho fica piscando, indicando que não foi possível ligar o dispositivo de forma correta. Caso o BLE seja iniciado com sucesso, então é feita a leitura das configurações salvas previamente pelo usuário, inicialização da state machine do PIO no GPIO correspondente, inicio de *timers* e então o loop principal do programa é iniciado.
+O software inicia configurando os GPIOs de entrada e saída (do microfone e led de status), em seguida tenta a inicialização do BLE (anúncio e registro dos callback) e caso não seja possível  inicializar, o led vermelho ficará piscando em loop, indicando que não foi possível ligar o dispositivo de rede da forma correta e não prossegue com o código. Caso o BLE seja iniciado com sucesso, então é feita a tentativa de leitura das configurações salvas previamente pelo usuário, inicialização da state machine do PIO no GPIO correspondente, inicio de *timers* para controlar algunes efeitos e então o loop principal do programa é iniciado. O loop é responsável por aplicar na saída PIO os valores necessários para controlar os efeitos dos leds WS2812. Já as funções de callback do BLE são responsáveis por receber os dados e tratá-los, e através de variáveis globais interage com o while(true) do programa principal.
 
 ### Configurações dos registros
 
@@ -225,7 +225,11 @@ Para o dispositivo LAC o BLE funciona no modo servidor, esperando com que client
 
 Nesse projeto a característica usa o UUID: 1191e8b3-5c6b-417c-b7b5-813ec84a757e
 
-Que foi configurado no arquivo *comunicacao.gatt*.
+Que foi configurado no arquivo *comunicacao.gatt*. O arquivo de *comunicacao.gatt* é um arquivo de texto que contém informações que serão usadas para comunicação do BLE, como descrição de serviços e características. Após criar esse arquivo e definir seu conteúdo, no CMakeLists deve-se adicionar um linha de compilação para gerar o header desse arquivo, e assim você conseguir usar os IDs gerados em seu código. Os IDs gerados permitem que a interação com características do serviço BLE sejam identificadas tanto com relação à mudança de configuração quanto ao valor escrito.
+
+Para gerar IDs, você pode usar uma ferramenta online: https://www.uuidgenerator.net/version4
+
+Dentro do diretório do pico você pode encontrar alguns valores 'default' para determinados tipos de serviços e características, caso precise usar um desses, a geração de ID aleatório como dito anteriormente é desnecessário.
 
 ### Formato do pacote de dados
 
@@ -299,9 +303,15 @@ Os principais destaques observados foram:
 
 Além da estabilidade e confiabilidade, o projeto se destacou pela portabilidade e autonomia, pois não requer uma conexão Wi-Fi para funcionamento. Isso amplia suas aplicações para diferentes ambientes e contextos, como eventos, decoração e automação.
 
-### Faça um vídeo de no máximo 3 minutos mostrando seu projeto funcionando. Inclua o link do vídeo no seu relatório de entrega.	(1 ponto)
+Os teste de comunicação foram realizado utilizando um aplicativo Android *BLE Scanner* onde permite eu escrever e ler valores em características BLE de dispositivos conectados.
 
-  O vídeo deve ser enviado na forma de um link do YouTube. Se o aluno desejar que o vídeo não seja público, pode ser um vídeo **não listado**.
+Link do aplicativo: https://play.google.com/store/apps/details?id=com.macdom.ble.blescanner&hl=pt_BR
+
+### Faça um vídeo de no máximo 3 minutos mostrando seu projeto funcionando. Inclua o link do vídeo no seu relatório de entrega.
+
+Link de demonstração oficial: https://youtu.be/W3e9JMGJweA
+
+Link extra do efeito de barras: https://youtube.com/shorts/s2HyZF77kUY
 
 ## Referências
 
