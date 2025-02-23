@@ -217,6 +217,8 @@ Esse recurso utiliza acesso à flash a partir de chamadas de funções da stdio,
 
 ### Protocolo de comunicação
 
+**BLE**
+
 O BLE funciona na mesma banda industrial, científica e médica (ISM) de 2,4 GHz que o bluetooth padrão e também usa canais diferentes do bluetooth padrão. O BLE usa 40 canais de 2 MHz para transmitir dados usando modulação gaussiana de mudança de frequência (um método usado para transições mais suaves entre pulsos de dados), fazendo com que o salto de frequência produza menos problemas de interferência em comparação com as comunicações Bluetooth padrão. 
 
 O espectro espalhado de sequência direta é usado na tecnologia BLE para reduzir a interferência causada pelas transmissões de sinal BLE. As tecnologias Bluetooth padrão usam o método de espectro espalhado por salto de frequência (FHSS) para transmitir sinais de rádio que produzem interferência significativa em comparação com BLE. *(Retirado do website: litum.com)*
@@ -230,6 +232,10 @@ Que foi configurado no arquivo *comunicacao.gatt*. O arquivo de *comunicacao.gat
 Para gerar IDs, você pode usar uma ferramenta online: https://www.uuidgenerator.net/version4
 
 Dentro do diretório do pico você pode encontrar alguns valores 'default' para determinados tipos de serviços e características, caso precise usar um desses, a geração de ID aleatório como dito anteriormente é desnecessário.
+
+**PIO**
+
+Para o controle dos leds via PIO é preciso atribuir os dados de configuração relacionados a quantidade de pinos, PIO id, state machine e memória atribuído àquela configuração PIO através do comando *pio_claim_free_sm_and_add_program_for_gpio_range.* E em seguida a definição do pinos usados, frequencia do clock (800kHz nesse projeto) e formato de cores para controlar esse tipo de led em específico. Para esse led o protocolo é conhecido como one-wire e tempo crítico que são essenciais para o controle preciso e assertivo dos leds. Nesse procotolo os bits são transmitidos por pulso de tempo específicos que podem se consultados no datasheet oficial do microcontrolador WS2812 (link no tópico de referência desse documento).
 
 ### Formato do pacote de dados
 
@@ -246,7 +252,7 @@ Os dados que controlam o dispositivo são no formato UTF-8, e seguem um formato 
 | QC=XX   | Define a quantidade de colunas para efeitos onde os leds estão dispostos em matriz bidimensional. Ex.: **QC=5** define a quantidade de colunas para 5. |
 | SAVE    | Salva as configurações atuais na flash do dispositivo. Ex.: **SAVE** |
 
-
+Para o controle dos leds com WS2812 é importante lembrar que os dados das cores são transmitidos em formato **GRB** e não RGB, como visto na maioria dos casos onde a cor pode ser controlada.
 
 ## Execução do projeto
 
@@ -358,3 +364,5 @@ https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Assigned_N
 https://www.gta.ufrj.br/ensino/eel879/trabalhos_vf_2012_2/bluetooth/implementacao.htm
 
 https://developer-android-com.translate.goog/develop/connectivity/bluetooth/ble/ble-overview?_x_tr_sl=en&_x_tr_tl=pt&_x_tr_hl=pt&_x_tr_pto=tc
+
+https://cdn-shop.adafruit.com/datasheets/WS2812.pdf
