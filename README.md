@@ -307,11 +307,11 @@ Os teste de comunicação foram realizado utilizando um aplicativo Android *BLE 
 
 Link do aplicativo: https://play.google.com/store/apps/details?id=com.macdom.ble.blescanner&hl=pt_BR
 
-### Faça um vídeo de no máximo 3 minutos mostrando seu projeto funcionando. Inclua o link do vídeo no seu relatório de entrega.
+### Vídeo
 
-Link de demonstração oficial: https://youtu.be/W3e9JMGJweA
+**Link de demonstração oficial**: https://youtu.be/W3e9JMGJweA
 
-Link extra do efeito de barras: https://youtube.com/shorts/s2HyZF77kUY
+Link extra: https://youtube.com/shorts/SF9WI3fbc28?feature=share
 
 ## Referências
 
